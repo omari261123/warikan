@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>飲み会精算</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --felt: #17483a;
+      --felt-deep: #0b281f;
+      --chalk: #e8efe9;
+      --chalk-dim: #9fb7ab;
+      --brass: #d6b26c;
+      --panel: #fbfaf6;
+      --ink: #1f1f1d;
+      --ink-dim: #6b6b66;
+      --line: #d9d6cc;
+      --tint: #e9f0ec;
+      --red: #b8232f;
+      --display: "Dela Gothic One", "Hiragino Sans", sans-serif;
+      --body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+
+    body {
+      min-height: 100vh;
+      padding: 56px 16px 40px;
+      background-color: var(--felt-deep);
+      background-image: radial-gradient(ellipse 70% 60% at 50% 30%, var(--felt) 0%, var(--felt-deep) 100%);
+      background-attachment: fixed;
+      color: var(--chalk);
+      font-family: var(--body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    main { max-width: 800px; margin: 0 auto; }
+
+    h1 {
+      margin: 0 0 24px;
+      font-family: var(--display);
+      font-weight: 400;
+      font-size: clamp(32px, 6vw, 44px);
+      line-height: 1.1;
+    }
+
+    .panel {
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 24px 40px -16px rgba(0, 0, 0, 0.55);
+    }
+    .panel + .panel { margin-top: 20px; }
+    .panel h2 { margin: 0 0 16px; font-size: 20px; font-weight: 700; }
+    .panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; margin-bottom: 16px; }
+    .panel-head h2 { margin: 0; }
+
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .small-label { font-size: 14px; font-weight: 700; }
+
+    input[type="text"], input[type="number"], select {
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+      border: 1.5px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    input[type="number"] { text-align: right; }
+    input:invalid { border-color: var(--red); }
+    input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--brass);
+      outline-offset: 2px;
+      border-color: var(--brass);
+    }
+
+    /* ---------- 会（1次会・2次会…） ---------- */
+    .rounds { display: grid; gap: 12px; }
+    .round {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr) 200px 40px;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 12px 12px 16px;
+      background: var(--tint);
+      border-radius: 12px;
+    }
+    .round .r-name {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--felt);
+      background: transparent;
+      border: 1.5px dashed transparent;
+    }
+    .round .r-name:hover { border-color: var(--line); background: #fff; }
+    .round .r-name:focus-visible { background: #fff; }
+    .round .r-name::placeholder { color: var(--felt); opacity: 1; }
+    .money { position: relative; }
+    .money input { width: 100%; padding-left: 32px; font-size: 20px; font-weight: 700; }
+    .money span {
+      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      font-size: 18px; font-weight: 700; color: var(--ink-dim);
+    }
+    .round select { width: 100%; }
+
+    details { margin-top: 14px; }
+    summary { cursor: pointer; font-size: 14px; font-weight: 700; color: var(--felt); }
+    details[hidden] { display: none; }
+
+    .weights { margin-top: 12px; border-collapse: collapse; }
+    .weights th, .weights td { padding: 4px 8px; border: none; font-size: 14px; }
+    .weights thead th { color: var(--ink-dim); font-size: 13px; text-align: center; border-bottom: 1px solid var(--line); }
+    .weights tbody th { text-align: left; font-weight: 700; white-space: nowrap; }
+    .weights input { width: 80px; padding: 6px 8px; }
+    .weights-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: var(--ink-dim); }
+    .weights-foot p { margin: 0; }
+
+    .text-btn {
+      padding: 6px 14px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--felt);
+      background: transparent;
+      border: 1.5px solid var(--felt);
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .text-btn:hover { background: var(--felt); color: var(--chalk); }
+    .text-btn.solid { background: var(--felt); color: var(--chalk); }
+    .text-btn.solid:hover { background: var(--felt-deep); }
+
+    .del {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; padding: 0;
+      border: none; border-radius: 8px;
+      background: transparent; color: var(--ink-dim); cursor: pointer;
+    }
+    .del:hover:not(:disabled) { background: #f1e4e4; color: var(--red); }
+    .del:disabled { opacity: 0.25; cursor: not-allowed; }
+    .del svg { width: 18px; height: 18px; }
+
+    /* ---------- 参加者 ---------- */
+    .count { font-size: 14px; color: var(--ink-dim); }
+    .people { list-style: none; margin: 0; padding: 0; }
+    .people > li {
+      display: grid;
+      grid-template-columns: 1fr 170px 40px;
+      gap: 6px 8px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .people > li:last-child { border-bottom: none; }
+    .people input[type="text"], .people select { width: 100%; }
+    .people .empty { display: block; padding: 20px 0; text-align: center; color: var(--ink-dim); border: none; }
+
+    .attend { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .attend[hidden] { display: none; }
+    .attend-label { font-size: 13px; color: var(--ink-dim); margin-right: 2px; }
+    .chip { position: relative; }
+    .chip input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+    .chip span {
+      display: inline-block;
+      padding: 3px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink-dim);
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+      text-decoration: line-through;
+    }
+    .chip input:checked + span {
+      color: var(--chalk);
+      background: var(--felt);
+      border-color: var(--felt);
+      text-decoration: none;
+    }
+    .chip input:focus-visible + span { outline: 3px solid var(--brass); outline-offset: 2px; }
+
+    .add-area {
+      display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center;
+      margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--line);
+    }
+    .bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
+    .bulk input { width: 72px; padding: 8px 10px; }
+    .bulk select { padding: 8px 10px; }
+
+    /* ---------- 結果 ---------- */
+    .result-msg { margin: 0; color: var(--ink-dim); }
+    .result-msg.error { color: var(--red); font-weight: 700; }
+    .table-wrap { overflow-x: auto; }
+    table.res { width: 100%; border-collapse: collapse; margin-top: 12px; font-variant-numeric: tabular-nums; }
+    .res th, .res td { padding: 8px; border-bottom: 1px solid var(--line); text-align: left; }
+    .res th { font-size: 13px; color: var(--ink-dim); border-bottom: 1.5px solid var(--ink); white-space: nowrap; }
+    .num { text-align: right !important; white-space: nowrap; }
+    .res td.pay { font-weight: 700; font-size: 17px; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .sheet { margin-top: 0; }
+    .sheet .handle-col, .sheet .handle { width: 28px; padding-left: 4px; padding-right: 0; }
+    .sheet .handle { color: var(--ink-dim); cursor: grab; user-select: none; letter-spacing: -2px; }
+    .sheet tr.dragging { opacity: 0.4; }
+    .sheet tfoot td { background: var(--tint); color: var(--ink); font-size: 14px; }
+    .sheet tfoot tr:first-child td { border-top: 1.5px solid var(--ink); }
+    .sheet tfoot tr.grand td { font-weight: 700; font-size: 15px; }
+    .sheet .move-col, .sheet .move { width: 84px; text-align: right; white-space: nowrap; }
+    .move-btn {
+      width: 32px; height: 32px; padding: 0;
+      font-size: 12px; color: var(--felt);
+      background: transparent; border: 1.5px solid var(--line); border-radius: 6px;
+      cursor: pointer;
+    }
+    .move-btn:hover:not(:disabled) { background: var(--felt); color: var(--chalk); border-color: var(--felt); }
+    .move-btn:disabled { opacity: 0.3; cursor: default; }
+
+    .remarks { margin-top: 24px; padding: 16px; background: var(--tint); border-radius: 12px; font-size: 14px; }
+    .remarks:empty { display: none; }
+    .remarks h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+    .remarks h3 small { font-size: 12px; font-weight: 400; color: var(--ink-dim); }
+    .remarks ul { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+    .remarks p { margin: 2px 0 0; color: var(--ink-dim); }
+    .mini { margin-top: 6px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .mini th, .mini td { padding: 3px 10px; border-bottom: 1px solid var(--line); text-align: left; font-size: 13px; }
+    .mini th { color: var(--ink-dim); }
+
+
+    .copy-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 20px; }
+    .copy-btn {
+      padding: 12px 24px;
+      font: inherit; font-size: 16px; font-weight: 700;
+      color: var(--felt-deep); background: var(--brass);
+      border: none; border-radius: 999px; cursor: pointer;
+    }
+    .copy-btn:hover { background: #c79d4f; }
+    .copy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .copy-row p { margin: 0; font-size: 14px; color: var(--felt); font-weight: 700; }
+
+    .copyright { margin-top: 28px; color: var(--chalk-dim); font-size: 13px; text-align: center; }
+
+    @media (max-width: 600px) {
+      .panel { padding: 20px 16px; }
+      .round { grid-template-columns: minmax(0, 1fr) 40px; }
+      .round .r-name { grid-column: 1; }
+      .round .del { grid-column: 2; grid-row: 1; }
+      .round .money, .round select { grid-column: 1 / -1; }
+      .people > li { grid-template-columns: 1fr 128px 40px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>飲み会精算</h1>
+
+    <!-- 会ごとの金額と計算方法 -->
+    <section class="panel" aria-labelledby="h-rounds">
+      <div class="panel-head">
+        <h2 id="h-rounds">お会計</h2>
+        <button type="button" class="text-btn solid" id="add-round">＋ 次の精算を追加</button>
+      </div>
+
+      <div class="rounds" id="rounds"></div>
+
+
+      <details id="weights-box" hidden>
+        <summary>役職ごとの比率を見る・変える</summary>
+        <table class="weights">
+          <thead><tr><th></th><th>傾斜（標準）</th><th>傾斜（大）</th></tr></thead>
+          <tbody id="weights"></tbody>
+        </table>
+        <div class="weights-foot">
+          <p>Band1 を 1 としたときの負担の比率です。数字が大きいほど多く払います。</p>
+          <button type="button" class="text-btn" id="weights-reset">初期値に戻す</button>
+        </div>
+      </details>
+    </section>
+
+    <!-- 参加者 -->
+    <section class="panel" aria-labelledby="h-people">
+      <div class="panel-head">
+        <h2 id="h-people">参加者</h2>
+        <span class="count" id="count">0人</span>
+      </div>
+      <ul class="people" id="people"></ul>
+
+      <div class="add-area">
+        <button type="button" class="text-btn" id="add-one">1人追加</button>
+        <div class="bulk">
+          <select id="bulk-band" aria-label="まとめて追加する役職"></select>
+          <span>を</span>
+          <input type="number" id="bulk-count" min="1" max="100" step="1" value="3" aria-label="追加する人数">
+          <span>人</span>
+          <button type="button" class="text-btn" id="add-bulk">まとめて追加</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 結果 -->
+    <section class="panel" aria-labelledby="h-result">
+      <div class="panel-head">
+        <h2 id="h-result">精算結果</h2>
+        <button type="button" class="text-btn" id="reset-order" hidden>Bandの高い順に戻す</button>
+      </div>
+      <div id="result" aria-live="polite"></div>
+      <div class="copy-row">
+        <button type="button" class="copy-btn" id="copy" disabled>表をコピー</button>
+        <p id="copy-msg"></p>
+      </div>
+      <div class="remarks" id="remarks"></div>
+    </section>
+
+    <footer class="copyright">&copy; 2026 Toshiki Tomari</footer>
+  </main>
+
+  <template id="person-template">
+    <li>
+      <input type="text" class="name" aria-label="名前">
+      <select class="band" aria-label="役職"></select>
+      <button type="button" class="del" aria-label="この参加者を削除" title="この参加者を削除">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/>
+        </svg>
+      </button>
+      <div class="attend" hidden></div>
+    </li>
+  </template>
+
+  <script>
+    const BANDS = [
+      { id: 0, label: 'Band0（NH等）' },
+      { id: 1, label: 'Band1' },
+      { id: 2, label: 'Band2' },
+      { id: 3, label: 'Band3' },
+      { id: 4, label: 'Band4' },
+      { id: 5, label: 'Band5' },
+    ];
+    // 負担の比率（Band1 = 1）。役職が上がるほど多く払う
+    const DEFAULT_WEIGHTS = {
+      standard: [0.8, 1, 1.2, 1.4, 1.6, 1.8],
+      large:    [0.5, 1, 1.5, 2, 2.5, 3],
+    };
+    const METHODS = {
+      even:     '単純割り勘',
+      standard: '役職で傾斜（標準）',
+      large:    '役職で傾斜（大）',
+    };
+    const STORAGE_KEY = 'warikan-weights';
+    const UNIT = 10; // 会ごとの1人あたりの金額は10円単位（切り上げ）
+
+    const $ = (id) => document.getElementById(id);
+    const yen = (n) => '¥' + Math.round(n).toLocaleString('ja-JP');
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+
+    /* ---------- 比率（ブラウザに保存） ---------- */
+    const weights = { standard: [...DEFAULT_WEIGHTS.standard], large: [...DEFAULT_WEIGHTS.large] };
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      for (const k of ['standard', 'large']) {
+        if (Array.isArray(saved?.[k]) && saved[k].length === 6 && saved[k].every((v) => v > 0)) weights[k] = saved[k];
+      }
+    } catch (e) { /* 保存できない環境では初期値のまま */ }
+    const saveWeights = () => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(weights)); } catch (e) { /* 何もしない */ }
+    };
+
+    function renderWeights() {
+      $('weights').innerHTML = BANDS.map((b) => `
+        <tr>
+          <th scope="row">${esc(b.label)}</th>
+          ${['standard', 'large'].map((k) => `
+            <td><input type="number" min="0.1" step="0.1" value="${weights[k][b.id]}"
+                 data-slope="${k}" data-band="${b.id}" aria-label="${esc(b.label)}の${k === 'standard' ? '標準' : '大'}の比率"></td>`).join('')}
+        </tr>`).join('');
+    }
+    $('weights').addEventListener('input', (e) => {
+      const input = e.target;
+      const v = Number(input.value);
+      if (input.value.trim() === '' || !(v > 0)) return; // 不正な値は反映しない（赤枠で表示）
+      weights[input.dataset.slope][Number(input.dataset.band)] = v;
+      saveWeights();
+      calc();
+    });
+    $('weights-reset').addEventListener('click', () => {
+      weights.standard = [...DEFAULT_WEIGHTS.standard];
+      weights.large = [...DEFAULT_WEIGHTS.large];
+      saveWeights();
+      renderWeights();
+      calc();
+    });
+
+    /* ---------- 会（1次会・2次会…） ---------- */
+    let rounds = [{ id: 1, name: '', total: '', method: 'even' }];
+    let nextRoundId = 2;
+    // 名前が空なら「1次会」「2次会」…と順番で呼ぶ
+    const roundName = (r) => r.name.trim() || `${rounds.indexOf(r) + 1}次会`;
+
+    function renderRounds() {
+      $('rounds').innerHTML = rounds.map((r, i) => `
+        <div class="round" data-id="${r.id}">
+          <input type="text" class="r-name" value="${esc(r.name)}" placeholder="${i + 1}次会"
+                 maxlength="20" aria-label="${i + 1}番目の会の名前（空欄なら${i + 1}次会）" title="クリックして名前を変更">
+          <div class="money">
+            <span aria-hidden="true">¥</span>
+            <input type="number" class="r-total" min="0" step="1" inputmode="numeric"
+                   placeholder="${i === 0 ? '30000' : '金額'}" value="${esc(r.total)}" aria-label="${i + 1}次会のお会計">
+          </div>
+          <select class="r-method" aria-label="${i + 1}次会の計算方法">
+            ${Object.entries(METHODS).map(([k, v]) => `<option value="${k}"${k === r.method ? ' selected' : ''}>${v}</option>`).join('')}
+          </select>
+          <button type="button" class="del r-del" aria-label="${i + 1}次会を削除" title="${i + 1}次会を削除"${rounds.length === 1 ? ' disabled' : ''}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/>
+            </svg>
+          </button>
+        </div>`).join('');
+      $('weights-box').hidden = !rounds.some((r) => r.method !== 'even');
+      syncAttendance();
+    }
+
+    const roundOf = (el) => rounds.find((r) => r.id === Number(el.closest('.round').dataset.id));
+    $('rounds').addEventListener('input', (e) => {
+      if (e.target.classList.contains('r-name')) {
+        roundOf(e.target).name = e.target.value;
+        syncAttendance(); // 参加ボタンの表示名を更新して再計算
+        return;
+      }
+      if (!e.target.classList.contains('r-total')) return;
+      roundOf(e.target).total = e.target.value;
+      calc();
+    });
+    $('rounds').addEventListener('change', (e) => {
+      if (!e.target.classList.contains('r-method')) return;
+      roundOf(e.target).method = e.target.value;
+      $('weights-box').hidden = !rounds.some((r) => r.method !== 'even');
+      calc();
+    });
+    $('rounds').addEventListener('click', (e) => {
+      const del = e.target.closest('.r-del');
+      if (!del || rounds.length === 1) return;
+      const r = roundOf(del);
+      rounds = rounds.filter((x) => x !== r);
+      renderRounds();
+      $('add-round').focus();
+    });
+    $('add-round').addEventListener('click', () => {
+      // 2次会以降は割り勘が多いので、初期値は単純割り勘
+      rounds.push({ id: nextRoundId++, name: '', total: '', method: 'even' });
+      renderRounds();
+      $('rounds').lastElementChild.querySelector('.r-total').focus();
+    });
+
+    /* ---------- 参加者 ---------- */
+    const peopleEl = $('people');
+    const bandOptions = (selected) =>
+      BANDS.map((b) => `<option value="${b.id}"${b.id === selected ? ' selected' : ''}>${esc(b.label)}</option>`).join('');
+    $('bulk-band').innerHTML = bandOptions(1);
+
+    let nextPid = 1;
+    const personRows = () => [...peopleEl.querySelectorAll('li:not(.empty)')];
+
+    // 各参加者の「どの会に参加したか」のチェックを、今の会の数に合わせて作り直す
+    function syncAttendance() {
+      const multi = rounds.length > 1;
+      personRows().forEach((li, idx) => {
+        const box = li.querySelector('.attend');
+        const prev = {};
+        box.querySelectorAll('input').forEach((c) => { prev[c.dataset.round] = c.checked; });
+        box.innerHTML = '<span class="attend-label">参加：</span>' + rounds.map((r, i) => `
+          <label class="chip">
+            <input type="checkbox" data-round="${r.id}"${prev[r.id] === false ? '' : ' checked'}
+                   aria-label="参加者${idx + 1}が${esc(roundName(r))}に参加">
+            <span>${esc(roundName(r))}</span>
+          </label>`).join('');
+        box.hidden = !multi;
+      });
+      calc();
+    }
+
+    function addPerson(band = 1, focus = false) {
+      peopleEl.querySelector('.empty')?.remove();
+      const li = $('person-template').content.firstElementChild.cloneNode(true);
+      li.dataset.pid = String(nextPid++);
+      li.querySelector('.band').innerHTML = bandOptions(band);
+      peopleEl.append(li);
+      renumber();
+      if (focus) li.querySelector('.name').focus();
+    }
+
+    function renumber() {
+      const rows = personRows();
+      rows.forEach((li, i) => { li.querySelector('.name').placeholder = `参加者${i + 1}`; });
+      if (rows.length === 0 && !peopleEl.querySelector('.empty')) {
+        peopleEl.innerHTML = '<li class="empty">参加者がいません。下のボタンから追加してください。</li>';
+      }
+      $('count').textContent = `${rows.length}人`;
+      syncAttendance();
+    }
+
+    peopleEl.addEventListener('input', calc);
+    peopleEl.addEventListener('change', calc);
+    peopleEl.addEventListener('click', (e) => {
+      const del = e.target.closest('.del');
+      if (!del) return;
+      const li = del.closest('li');
+      const next = li.nextElementSibling || li.previousElementSibling;
+      li.remove();
+      renumber();
+      (next?.querySelector('.del') || $('add-one')).focus();
+    });
+    $('add-one').addEventListener('click', () => addPerson(1, true));
+    $('add-bulk').addEventListener('click', () => {
+      const n = Math.min(100, Math.floor(Number($('bulk-count').value)));
+      if (!(n >= 1)) { $('bulk-count').focus(); return; }
+      const band = Number($('bulk-band').value);
+      for (let i = 0; i < n; i++) addPerson(band);
+    });
+
+    /* ---------- 計算 ---------- */
+    let lastCopy = null;      // コピー用の { html, text }
+    let manualOrder = null;   // 手動で並べ替えたときの順番（pid の配列）。null なら役職順
+
+    function calc() {
+      const resultEl = $('result');
+      lastCopy = null;
+      $('copy').disabled = true;
+      $('copy-msg').textContent = '';
+      $('remarks').innerHTML = '';
+
+      const unit = UNIT;
+      const multi = rounds.length > 1;
+      const people = personRows().map((li, i) => {
+        const attend = new Set();
+        li.querySelectorAll('.attend input').forEach((c) => { if (c.checked || !multi) attend.add(Number(c.dataset.round)); });
+        return {
+          pid: Number(li.dataset.pid),
+          name: li.querySelector('.name').value.trim() || `参加者${i + 1}`,
+          band: Number(li.querySelector('.band').value),
+          attend,
+        };
+      });
+
+      const active = rounds
+        .map((r) => ({ r, name: roundName(r), total: Math.floor(Number(r.total)) }))
+        .filter((x) => x.total > 0);
+
+      const showMsg = (text, isError = false) => {
+        resultEl.innerHTML = `<p class="result-msg${isError ? ' error' : ''}">${esc(text)}</p>`;
+        $('reset-order').hidden = true;
+      };
+      if (people.length === 0) return showMsg('参加者を追加してください。');
+      if (active.length === 0) return showMsg('お会計の金額を入力してください。');
+
+      // 会ごとに、参加した人で比率に応じて按分する
+      const shares = people.map(() => ({}));
+      for (const x of active) {
+        const idx = people.map((p, i) => (p.attend.has(x.r.id) ? i : -1)).filter((i) => i >= 0);
+        if (idx.length === 0) return showMsg(`${x.name}に参加した人がいません。参加者の「参加」を確認してください。`, true);
+        const w = idx.map((i) => (x.r.method === 'even' ? 1 : weights[x.r.method][people[i].band]));
+        const sumW = w.reduce((a, b) => a + b, 0);
+        // 会ごとに10円単位で切り上げる（足りなくならないように）
+        idx.forEach((i, k) => { shares[i][x.r.id] = Math.ceil((x.total * w[k]) / sumW / unit - 1e-9) * unit; });
+        x.idx = idx;
+      }
+
+      // 精算金額は、会ごとの金額（10円単位）の合計
+      people.forEach((p, i) => {
+        p.pay = Object.values(shares[i]).reduce((a, b) => a + b, 0);
+        // 精算内訳：会ごとにいくらで計算したか（内訳の合計＝精算金額）
+        p.breakdown = active.filter((x) => x.r.id in shares[i]).map((x) => `${x.name} ${yen(shares[i][x.r.id])}`).join(' ＋ ') || '不参加';
+      });
+
+      // 並び順：手動で並べ替えていればその順、なければ Band の高い人から（同じ Band は入力順）
+      const byPid = new Map(people.map((p) => [p.pid, p]));
+      const bandOrder = [...people].sort((a, b) => b.band - a.band);
+      let ordered = bandOrder;
+      if (manualOrder) {
+        ordered = manualOrder.filter((pid) => byPid.has(pid)).map((pid) => byPid.get(pid));
+        bandOrder.forEach((p) => { if (!ordered.includes(p)) ordered.push(p); }); // 後から追加した人は末尾へ
+        manualOrder = ordered.map((p) => p.pid);
+      }
+      $('reset-order').hidden = !manualOrder;
+
+      const payText = (p) => (p.pay > 0 ? yen(p.pay) : '—');
+
+      // 表の下に入れる、会ごとの合計金額（複数の会があれば全体の合計も）
+      const billTotal = active.reduce((a, x) => a + x.total, 0);
+      const footRows = active.map((x) => ({ label: `${x.name}の合計（${x.idx.length}人）`, amount: yen(x.total) }));
+      if (active.length > 1) footRows.push({ label: 'お会計の合計', amount: yen(billTotal), grand: true });
+      const last = ordered.length - 1;
+      resultEl.innerHTML = `
+        <div class="table-wrap">
+          <table class="res sheet">
+            <thead><tr>
+              <th class="handle-col" aria-hidden="true"></th>
+              <th>名前</th><th>精算内訳</th><th class="num">精算金額</th>
+              <th class="move-col"><span class="visually-hidden">並べ替え</span></th>
+            </tr></thead>
+            <tbody>${ordered.map((p, i) => `
+              <tr draggable="true" data-pid="${p.pid}">
+                <td class="handle" aria-hidden="true" title="ドラッグして並べ替え">⋮⋮</td>
+                <td>${esc(p.name)}</td>
+                <td>${esc(p.breakdown)}</td>
+                <td class="num pay">${payText(p)}</td>
+                <td class="move">
+                  <button type="button" class="move-btn" data-dir="-1" aria-label="${esc(p.name)}を上へ"${i === 0 ? ' disabled' : ''}>▲</button>
+                  <button type="button" class="move-btn" data-dir="1" aria-label="${esc(p.name)}を下へ"${i === last ? ' disabled' : ''}>▼</button>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+            <tfoot>${footRows.map((f) => `
+              <tr${f.grand ? ' class="grand"' : ''}>
+                <td class="handle-col"></td>
+                <td colspan="2">${esc(f.label)}</td>
+                <td class="num">${f.amount}</td>
+                <td></td>
+              </tr>`).join('')}
+            </tfoot>
+          </table>
+        </div>`;
+
+      // 備考（画面のみ。コピーには含めない）
+      const collected = people.reduce((a, p) => a + p.pay, 0);
+      const roundNotes = active.map((x) => {
+        let detail;
+        if (x.r.method === 'even') {
+          detail = `<p>1人あたり ${yen(shares[x.idx[0]][x.r.id])}</p>`;
+        } else {
+          const bands = [...new Set(x.idx.map((i) => people[i].band))].sort((a, b) => b - a);
+          detail = `
+            <table class="mini">
+              <thead><tr><th>役職</th><th class="num">比率</th><th class="num">人数</th><th class="num">1人あたり</th></tr></thead>
+              <tbody>${bands.map((b) => {
+                const members = x.idx.filter((i) => people[i].band === b);
+                return `<tr><td>${esc(BANDS[b].label)}</td><td class="num">${weights[x.r.method][b]}</td>
+                  <td class="num">${members.length}人</td><td class="num">${yen(shares[members[0]][x.r.id])}</td></tr>`;
+              }).join('')}</tbody>
+            </table>`;
+        }
+        return `<li><strong>${esc(x.name)}</strong>：${yen(x.total)}（${x.idx.length}人・${METHODS[x.r.method]}）${detail}</li>`;
+      }).join('');
+
+      $('remarks').innerHTML = `
+        <h3>備考 <small>（コピーには含まれません）</small></h3>
+        <ul>
+          ${roundNotes}
+          <li>お会計の合計 ${yen(billTotal)}／集金額 ${yen(collected)}／差額 ${yen(collected - billTotal)}</li>
+          <li>${active.length > 1 ? '会ごとに1人あたりの金額を10円単位で切り上げ、その合計を精算金額にしています。' : '1人あたりの金額は10円単位で切り上げています。'}</li>
+        </ul>`;
+
+      // コピー用（メールに貼ると表になる HTML と、テキストのみのメール用のタブ区切り）
+      const cell = 'border:1px solid #999;padding:6px 10px;';
+      lastCopy = {
+        html: `<table style="border-collapse:collapse;font-size:14px;">
+          <thead><tr>
+            <th style="${cell}background:#eeeeee;text-align:left;">名前</th>
+            <th style="${cell}background:#eeeeee;text-align:left;">精算内訳</th>
+            <th style="${cell}background:#eeeeee;text-align:right;">精算金額</th>
+          </tr></thead>
+          <tbody>${ordered.map((p) => `<tr>
+            <td style="${cell}">${esc(p.name)}</td>
+            <td style="${cell}">${esc(p.breakdown)}</td>
+            <td style="${cell}text-align:right;">${payText(p)}</td></tr>`).join('')}
+          </tbody>
+          <tfoot>${footRows.map((f) => `<tr>
+            <td colspan="2" style="${cell}background:#f6f6f6;${f.grand ? 'font-weight:bold;' : ''}">${esc(f.label)}</td>
+            <td style="${cell}background:#f6f6f6;text-align:right;${f.grand ? 'font-weight:bold;' : ''}">${f.amount}</td></tr>`).join('')}
+          </tfoot></table>`,
+        text: ['名前\t精算内訳\t精算金額', ...ordered.map((p) => `${p.name}\t${p.breakdown}\t${payText(p)}`),
+          ...footRows.map((f) => `${f.label}\t\t${f.amount}`)].join('\n'),
+      };
+      $('copy').disabled = false;
+    }
+
+    /* ---------- 結果の並べ替え ---------- */
+    const currentOrder = () => [...$('result').querySelectorAll('tbody tr[data-pid]')].map((tr) => Number(tr.dataset.pid));
+
+    function moveTo(pid, newIndex, focusDir) {
+      const order = currentOrder().filter((x) => x !== pid);
+      order.splice(Math.max(0, Math.min(order.length, newIndex)), 0, pid);
+      manualOrder = order;
+      calc();
+      if (focusDir) {
+        const btn = $('result').querySelector(`tr[data-pid="${pid}"] .move-btn[data-dir="${focusDir}"]`);
+        (btn && !btn.disabled ? btn : $('result').querySelector(`tr[data-pid="${pid}"] .move-btn:not(:disabled)`))?.focus();
+      }
+    }
+
+    $('result').addEventListener('click', (e) => {
+      const btn = e.target.closest('.move-btn');
+      if (!btn) return;
+      const pid = Number(btn.closest('tr').dataset.pid);
+      const dir = Number(btn.dataset.dir);
+      moveTo(pid, currentOrder().indexOf(pid) + dir, btn.dataset.dir);
+    });
+
+    // ドラッグ＆ドロップ（パソコン向け。スマホは ▲▼ ボタンで）
+    let dragPid = null;
+    $('result').addEventListener('dragstart', (e) => {
+      const tr = e.target.closest('tr[data-pid]');
+      if (!tr) return;
+      dragPid = Number(tr.dataset.pid);
+      tr.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(dragPid));
+    });
+    $('result').addEventListener('dragover', (e) => {
+      if (dragPid === null || !e.target.closest('tr[data-pid]')) return;
+      e.preventDefault();
+    });
+    $('result').addEventListener('drop', (e) => {
+      const tr = e.target.closest('tr[data-pid]');
+      if (dragPid === null || !tr) return;
+      e.preventDefault();
+      const target = Number(tr.dataset.pid);
+      if (target !== dragPid) {
+        const order = currentOrder();
+        const rect = tr.getBoundingClientRect();
+        const after = e.clientY > rect.top + rect.height / 2;
+        const without = order.filter((x) => x !== dragPid);
+        moveTo(dragPid, without.indexOf(target) + (after ? 1 : 0));
+      }
+      dragPid = null;
+    });
+    $('result').addEventListener('dragend', () => {
+      dragPid = null;
+      $('result').querySelectorAll('.dragging').forEach((tr) => tr.classList.remove('dragging'));
+    });
+
+    $('reset-order').addEventListener('click', () => {
+      manualOrder = null;
+      calc();
+      $('copy').focus();
+    });
+
+    /* ---------- コピー ---------- */
+    $('copy').addEventListener('click', async () => {
+      if (!lastCopy) return;
+      let ok = false;
+      try {
+        // 表（HTML）とテキストの両方をクリップボードに入れる
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([lastCopy.html], { type: 'text/html' }),
+          'text/plain': new Blob([lastCopy.text], { type: 'text/plain' }),
+        })]);
+        ok = true;
+      } catch (e) {
+        // 使えない環境では、画面外に表を置いて選択→コピーする
+        const box = document.createElement('div');
+        box.innerHTML = lastCopy.html;
+        box.style.position = 'fixed';
+        box.style.left = '-9999px';
+        document.body.append(box);
+        const range = document.createRange();
+        range.selectNodeContents(box);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+        sel.removeAllRanges();
+        box.remove();
+      }
+      $('copy-msg').textContent = ok
+        ? 'コピーしました。メールに貼り付けると表として表示されます。'
+        : 'このブラウザではコピーできませんでした。表を選択してコピーしてください。';
+    });
+
+
+    renderWeights();
+    renderRounds();
+    for (let i = 0; i < 3; i++) addPerson(1);
+  </script>
+</body>
+</html>
